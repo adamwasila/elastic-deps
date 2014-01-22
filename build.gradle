@@ -1,13 +1,54 @@
+
+import org.gradle.api.internal.artifacts.dependencies.*
+import org.gradle.logging.StyledTextOutput
+import org.gradle.logging.StyledTextOutput.Style
+import org.gradle.logging.StyledTextOutputFactory
+
+
+version=System.nanoTime()
+
 subprojects {
   apply plugin: "java"
   apply plugin: "maven"
   
   group = "mycompany"
-  version = "1.0"
   
   repositories {
     mavenLocal()
   }
+
+
+	configurations.all { configuration ->
+	resolutionStrategy {
+		eachDependency { details ->
+			def p1 = rootProject.subprojects.find { it.group == details.requested.group && it.name == details.requested.name }
+			if( p1 != null && p1.version != details.requested.version){
+				def staticRef = false;
+				configuration.hierarchy.each { hconf ->
+					def z=hconf.dependencies.find { it instanceof ProjectDependency && it.group == details.requested.group && it.name == details.requested.name }
+					staticRef = staticRef || z
+				}
+				if( staticRef != false ){
+					logger.lifecycle "hiding binary of '${details.requested}' in [${project}] "
+					useTarget 'junit:junit:4.10'	// this should be some empty project which can be referenced in cases like this
+				}else{
+					StyledTextOutput o = services.get(StyledTextOutputFactory).create(this.class)
+					o.style(Style.Failure).text('============================================= ').println()
+					o.style(Style.Info).text("${project}: ")
+					o.style(Style.Failure).text('binary/source clash detected')
+					o.println()
+					o.style(Style.Header).text('please use:')
+					o.println()
+					o.style(Style.UserInput).text("   dependencies.${configuration.name} elastic(??? '${details.requested.name}','${details.requested.name}')")
+					o.println()
+					o.style(Style.Failure).text('=============================================').println()
+					useVersion 'nonexistent'
+				}
+			}
+		}
+	}
+	}
+
 }
 
 def elastic(notation, projectName) {

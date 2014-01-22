@@ -1,4 +1,6 @@
-def projectNames = ["sub1", "sub2", "sub3"]
+def projectNames = hasProperty('projects') ? projects : "sub1,sub2,sub3"
+
+projectNames=projectNames.split(',')
 
 projectNames.each { name ->
   if (new File("$rootDir/$name/").exists()) {
