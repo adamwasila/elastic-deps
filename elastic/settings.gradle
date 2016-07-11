@@ -2,10 +2,13 @@ def projectNames = hasProperty('projects') ? projects : "sub1,sub2,sub3"
 
 projectNames=projectNames.split(',')
 
+def baseSubprojectsPath = "$rootDir/.."
+
 projectNames.each { name ->
-  if (new File("$rootDir/$name/").exists()) {
+  if (new File("$baseSubprojectsPath/$name/").exists()) {
     println "project $name is internal to this build"
     include name
+    project(":$name").projectDir = file("$baseSubprojectsPath/$name")
   } else {
     println "project $name is external to this build"
   }
